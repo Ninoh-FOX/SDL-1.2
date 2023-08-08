@@ -1108,10 +1108,10 @@ void FB_InitOSKeymap(_THIS)
 	    keymap[i] = SDLK_RCTRL;
 	    break;
 	  case SCANCODE_VOLUMEUP:
-	    keymap[i] = SDLK_VOLUMEUP;
+	    keymap[i] = SDLK_RSUPER;
 	    break;
 	  case SCANCODE_VOLUMEDOWN:
-	    keymap[i] = SDLK_VOLUMEDOWN;
+	    keymap[i] = SDLK_LSUPER;
 	    break;
 	  case SCANCODE_LEFTALT:
 	    keymap[i] = SDLK_LALT;
