@@ -5,8 +5,11 @@ export RANLIB="${CROSS_COMPILE}gcc-ranlib"
 export CFLAGS="-O3 -flto"
 export CPPFLAGS=""
 export LDFLAGS=" -lmi_sys -lmi_ao -lmi_gfx -lcam_os_wrapper -lmsettings -Wl,--gc-sections"
+export PKG_CONFIG_PATH="/opt/miyoomini-toolchain/usr/bin"
+export PKG_CONFIG="/opt/miyoomini-toolchain/bin/pkgconf"
+export PKG_CONFIG_LIBDIR="/opt/miyoomini-toolchain/arm-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
 # NOTE: LIBS doesn't seem to be used so I had to put the libs in the LDFLAGS
-./configure --host=arm-linux-gnueabihf\
+./configure --host=arm-linux-gnueabihf  --prefix="/opt/miyoomini-toolchain/arm-linux-gnueabihf/sysroot/usr"\
  --enable-alsa=no\
  --enable-alsa-shared=no\
  --enable-esd=no\
