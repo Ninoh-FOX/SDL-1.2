@@ -64,7 +64,7 @@ enum { GFX_BLOCKING = 1, GFX_FLIPWAIT = 2 };
 #define	DEFAULTFLIPFLAGS	0					// high performance
 
 int			fd_fb = 0;
-int         res_x, res_y;
+uint32_t        res_x, res_y;
 struct			fb_fix_screeninfo finfo;
 struct			fb_var_screeninfo vinfo;
 MI_PHY			fb_phyAddr;
@@ -140,10 +140,22 @@ static bool isRetroarchRunning() {
 }
 
 static void getresolution(void) {
-	FILE *file = fopen("/tmp/screen_resolution", "r");
-		if (file == NULL || !(fscanf(file, "%dx%d", &res_x, &res_y) == 2))
-			return;
-		fclose(file);
+	const char *fb_device = "/dev/fb0";
+
+    int fb = open(fb_device, O_RDWR);
+    if (fb == -1) {
+        return;
+    }
+
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo)) {
+        close(fb);
+        return;
+    }
+
+   res_x = vinfo.xres;
+   res_y = vinfo.yres;
+   close(fb);
 }
 	
 
