@@ -155,7 +155,7 @@ static void getresolution(void) {
 	
    res_x = vinfo.xres;
    res_y = vinfo.yres;
-   printf("%dx%d from framebuffer", vinfo.xres, vinfo.yres);
+   fprintf(stdout,"[GFX info:] Screen is set to %d x %d \n", res_x, res_y);
    close(fb);
 }
 
@@ -186,16 +186,22 @@ static void* GFX_FlipThread(void* param) {
 			if (isRetroarchRunning()) {
 			target_offset = vinfo.yoffset + res_y;
 			if ( target_offset == res_y*3 ) target_offset = 0;
-			} else {
-			target_offset = vinfo.yoffset + 480;
-			if ( target_offset == 1440 ) target_offset = 0;
-			}
 			vinfo.yoffset = target_offset;
 			pthread_cond_signal(&flip_start);
 			pthread_mutex_unlock(&flip_mx);
 			if (Fence) { MI_GFX_WaitAllDone(FALSE, Fence); Fence = 0; }
 			ioctl(fd_fb, FBIOPAN_DISPLAY, &vinfo);
-			pthread_mutex_lock(&flip_mx);
+			pthread_mutex_lock(&flip_mx);	
+			} else {
+			target_offset = vinfo.yoffset + 480;
+			if ( target_offset == 1440 ) target_offset = 0;
+			vinfo.yoffset = target_offset;
+			pthread_cond_signal(&flip_start);
+			pthread_mutex_unlock(&flip_mx);
+			if (Fence) { MI_GFX_WaitAllDone(FALSE, Fence); Fence = 0; }
+			ioctl(fd_fb, FBIOPAN_DISPLAY, &vinfo);
+			pthread_mutex_lock(&flip_mx);	
+			}
 		} while(--now_flipping);
 	}
 	return 0;
@@ -307,6 +313,8 @@ void GFX_ClearFrameBuffer(void) { MI_SYS_MemsetPa(finfo.smem_start, 0, finfo.sme
 //		Prepare for HW Blit to FB
 //
 static void	GFX_Init(void) {
+	getresolution();
+	
 	if (fd_fb == 0) {
 		MI_SYS_Init();
 		MI_GFX_Open();
@@ -318,7 +326,6 @@ static void	GFX_Init(void) {
 		fd_fb = open("/dev/fb0", O_RDWR);
 		
 		if (isRetroarchRunning()) {
-		getresolution();
 		_SDL_SetVideoMode(res_x, res_y, 32, SDL_SWSURFACE);
 		ioctl(fd_fb, FBIOGET_VSCREENINFO, &vinfo);
 		vinfo.yres_virtual = res_y*3; vinfo.yoffset = 0;
