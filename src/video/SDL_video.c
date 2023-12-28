@@ -152,12 +152,12 @@ static void getresolution(void) {
         close(fb);
         return;
     }
-
+	
    res_x = vinfo.xres;
    res_y = vinfo.yres;
+   printf("%dx%d from framebuffer", vinfo.xres, vinfo.yres);
    close(fb);
 }
-	
 
 static void GFX_UpdateFlags(void) {
 	const char* env;
@@ -182,8 +182,14 @@ static void* GFX_FlipThread(void* param) {
 	while(1) {
 		while (!now_flipping) pthread_cond_wait(&flip_req, &flip_mx);
 		Fence = flipFence;
-		do {	target_offset = vinfo.yoffset + 480;
+		do {
+			if (isRetroarchRunning()) {
+			target_offset = vinfo.yoffset + res_y;
+			if ( target_offset == res_y*3 ) target_offset = 0;
+			} else {
+			target_offset = vinfo.yoffset + 480;
 			if ( target_offset == 1440 ) target_offset = 0;
+			}
 			vinfo.yoffset = target_offset;
 			pthread_cond_signal(&flip_start);
 			pthread_mutex_unlock(&flip_mx);
@@ -269,7 +275,6 @@ static void	GFX_Flip(SDL_Surface *surface) {
 		}
 		
 		if (isRetroarchRunning()) {
-		getresolution();
 		target_offset = vinfo.yoffset + res_y;
 		if ( target_offset == res_y*3 ) target_offset = 0;
 		stDst.phyAddr = finfo.smem_start + (res_x*target_offset*4);
@@ -410,7 +415,6 @@ static SDL_Surface*	GFX_CreateRGBSurface(uint32_t flags, int width, int height, 
 	MI_PHY		phyAddr;
 	void*		virAddr;
 	if (isRetroarchRunning()) {
-		getresolution();
 	if (!width) width = res_x;
 	if (!height) height = res_y;
 	} else {
@@ -1407,7 +1411,6 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags) { 
 	
 	// NOTE: this is probably a probe for native resolution
 	if (isRetroarchRunning()) {
-		getresolution();
 	if (width==0) width = res_x;
 	if (height==0) height = res_y;
 	}else{
