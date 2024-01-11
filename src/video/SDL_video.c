@@ -153,9 +153,14 @@ static void getresolution(void) {
         return;
     }
 	
+   if (isRetroarchRunning()) {
    res_x = vinfo.xres;
    res_y = vinfo.yres;
-   fprintf(stdout,"[GFX info:] Screen is set to %d x %d \n", res_x, res_y);
+   } else {
+   res_x = 640;
+   res_y = 480;
+   }
+   fprintf(stdout,"[GFX info]: Screen is set to %d x %d \n", res_x, res_y);
    close(fb);
 }
 
@@ -183,7 +188,6 @@ static void* GFX_FlipThread(void* param) {
 		while (!now_flipping) pthread_cond_wait(&flip_req, &flip_mx);
 		Fence = flipFence;
 		do {
-			if (isRetroarchRunning()) {
 			target_offset = vinfo.yoffset + res_y;
 			if ( target_offset == res_y*3 ) target_offset = 0;
 			vinfo.yoffset = target_offset;
@@ -192,16 +196,6 @@ static void* GFX_FlipThread(void* param) {
 			if (Fence) { MI_GFX_WaitAllDone(FALSE, Fence); Fence = 0; }
 			ioctl(fd_fb, FBIOPAN_DISPLAY, &vinfo);
 			pthread_mutex_lock(&flip_mx);	
-			} else {
-			target_offset = vinfo.yoffset + 480;
-			if ( target_offset == 1440 ) target_offset = 0;
-			vinfo.yoffset = target_offset;
-			pthread_cond_signal(&flip_start);
-			pthread_mutex_unlock(&flip_mx);
-			if (Fence) { MI_GFX_WaitAllDone(FALSE, Fence); Fence = 0; }
-			ioctl(fd_fb, FBIOPAN_DISPLAY, &vinfo);
-			pthread_mutex_lock(&flip_mx);	
-			}
 		} while(--now_flipping);
 	}
 	return 0;
@@ -280,17 +274,11 @@ static void	GFX_Flip(SDL_Surface *surface) {
 			while (now_flipping == 2) pthread_cond_wait(&flip_start, &flip_mx);
 		}
 		
-		if (isRetroarchRunning()) {
 		target_offset = vinfo.yoffset + res_y;
 		if ( target_offset == res_y*3 ) target_offset = 0;
 		stDst.phyAddr = finfo.smem_start + (res_x*target_offset*4);
 		MI_GFX_BitBlit(&stSrc, &stSrcRect, &stDst, &stDstRect, &stOpt, &flipFence);
-		} else {
-		target_offset = vinfo.yoffset + 480;
-		if ( target_offset == 1440 ) target_offset = 0;
-		stDst.phyAddr = finfo.smem_start + (640*target_offset*4);
-		MI_GFX_BitBlit(&stSrc, &stSrcRect, &stDst, &stDstRect, &stOpt, &flipFence);
-		}
+			
 		// Request Flip
 		if (!now_flipping) {
 			now_flipping = 1;
@@ -325,7 +313,6 @@ static void	GFX_Init(void) {
 #endif
 		fd_fb = open("/dev/fb0", O_RDWR);
 		
-		if (isRetroarchRunning()) {
 		_SDL_SetVideoMode(res_x, res_y, 32, SDL_SWSURFACE);
 		ioctl(fd_fb, FBIOGET_VSCREENINFO, &vinfo);
 		vinfo.yres_virtual = res_y*3; vinfo.yoffset = 0;
@@ -345,27 +332,6 @@ static void	GFX_Init(void) {
 		stDstRect.u32Height = res_y;
 		stSrcRect.s32Xpos = 0;
 		stSrcRect.s32Ypos = 0;
-		} else {
-		_SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE);
-		ioctl(fd_fb, FBIOGET_VSCREENINFO, &vinfo);
-		vinfo.yres_virtual = 1440; vinfo.yoffset = 0;
-		ioctl(fd_fb, FBIOPUT_VSCREENINFO, &vinfo);
-
-		ioctl(fd_fb, FBIOGET_FSCREENINFO, &finfo);
-		GFX_ClearFrameBuffer();
-
-		stDst.phyAddr = finfo.smem_start;
-		stDst.eColorFmt = E_MI_GFX_FMT_ARGB8888;
-		stDst.u32Width = 640;
-		stDst.u32Height = 480;
-		stDst.u32Stride = 640*4;
-		stDstRect.s32Xpos = 0;
-		stDstRect.s32Ypos = 0;
-		stDstRect.u32Width = 640;
-		stDstRect.u32Height = 480;
-		stSrcRect.s32Xpos = 0;
-		stSrcRect.s32Ypos = 0;
-		}
 
 		memset(&stOpt, 0, sizeof(stOpt));
 		stOpt.eSrcDfbBldOp = E_MI_GFX_DFB_BLD_ONE;
@@ -421,13 +387,8 @@ static SDL_Surface*	GFX_CreateRGBSurface(uint32_t flags, int width, int height, 
 	SDL_Surface*	surface;
 	MI_PHY		phyAddr;
 	void*		virAddr;
-	if (isRetroarchRunning()) {
 	if (!width) width = res_x;
 	if (!height) height = res_y;
-	} else {
-	if (!width) width = 640;
-	if (!height) height = 480;
-	}
 	if (!depth) depth = 32;
 	int		pitch = width * (uint32_t)(depth/8);
 	uint32_t	size = pitch * height;
@@ -1417,13 +1378,8 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags) { 
 	if (ready_to_go) GFX_FreeSurface(ready_to_go);
 	
 	// NOTE: this is probably a probe for native resolution
-	if (isRetroarchRunning()) {
 	if (width==0) width = res_x;
 	if (height==0) height = res_y;
-	}else{
-	if (width==0) width = 640;
-	if (height==0) height = 480;
-	}
 	if (bpp==0) bpp = 32;
 	
 #if defined DEBUG_VIDEO
