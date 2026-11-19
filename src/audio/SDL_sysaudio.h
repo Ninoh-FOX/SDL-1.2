@@ -104,6 +104,7 @@ typedef struct AudioBootStrap {
 
 #if SDL_AUDIO_DRIVER_MIAO
 extern AudioBootStrap MIAO_bootstrap;
+extern AudioBootStrap ASRV_bootstrap;
 #endif
 #if SDL_AUDIO_DRIVER_SNDIO
 extern AudioBootStrap SNDIO_bootstrap;

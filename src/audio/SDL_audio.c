@@ -32,6 +32,7 @@
 static AudioBootStrap *bootstrap[] = {
 #if SDL_AUDIO_DRIVER_MIAO
 	&MIAO_bootstrap,
+	&ASRV_bootstrap,	/* audiofix ON without libpadsp, see miao/SDL_miaoaudio.c */
 #endif
 #if SDL_AUDIO_DRIVER_PULSE
 	&PULSE_bootstrap,
