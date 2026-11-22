@@ -101,6 +101,28 @@ void SDL_TimerQuit(void)
 	SDL_timer_threaded = 0;
 }
 
+Uint32 SDL_ThreadedTimerNextDue(void)
+{
+	Uint32 now, due = 0xFFFFFFFF;
+	SDL_TimerID t;
+
+	SDL_mutexP(SDL_timer_mutex);
+	now = SDL_GetTicks();
+	for ( t = SDL_timers; t; t = t->next ) {
+		/* same test as SDL_ThreadedTimerCheck: due when now - last_alarm > interval - SDL_TIMESLICE */
+		int left = (int)(t->interval - SDL_TIMESLICE) + 1 - (int)(now - t->last_alarm);
+		if ( left <= 0 ) {
+			due = 0;
+			break;
+		}
+		if ( (Uint32)left < due ) {
+			due = (Uint32)left;
+		}
+	}
+	SDL_mutexV(SDL_timer_mutex);
+	return due;
+}
+
 void SDL_ThreadedTimerCheck(void)
 {
 	Uint32 now, ms;

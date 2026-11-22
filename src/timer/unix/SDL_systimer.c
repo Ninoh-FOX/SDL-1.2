@@ -209,10 +209,22 @@ static SDL_Thread *timer = NULL;
 static int RunTimer(void *unused)
 {
 	while ( timer_alive ) {
+		Uint32 due = 0xFFFFFFFF;
 		if ( SDL_timer_running ) {
 			SDL_ThreadedTimerCheck();
+			due = SDL_ThreadedTimerNextDue();
 		}
-		SDL_Delay(1);
+		/* SDL_Delay() spins (sched_yield) for its last 10 ms because this kernel sleeps
+		 * in 10 ms steps, so SDL_Delay(1) here kept a whole core busy for as long as the
+		 * timer subsystem was up, even with no timer at all (PocketSNES: the emulator
+		 * lost CPU and the audio ran dry). Sleep one kernel tick while no timer is due
+		 * within 20 ms; keep the precise SDL_Delay(1) only right before a timer fires,
+		 * so timers keep the same accuracy as before. */
+		if ( due > 20 ) {
+			usleep(1000);
+		} else {
+			SDL_Delay(1);
+		}
 	}
 	return(0);
 }

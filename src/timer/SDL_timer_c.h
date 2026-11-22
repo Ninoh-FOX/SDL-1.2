@@ -44,3 +44,6 @@ extern void SDL_TimerQuit(void);
 
 /* This function is called from the SDL event thread if it is available */
 extern void SDL_ThreadedTimerCheck(void);
+
+/* Milliseconds until the next threaded timer is due (0 = now), 0xFFFFFFFF if none */
+extern Uint32 SDL_ThreadedTimerNextDue(void);
